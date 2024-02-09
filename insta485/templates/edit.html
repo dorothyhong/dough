@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Account</title>
+</head>
+<body>
+    <div>
+        <div class="logo">
+            <a href="/">Home</a>
+        </div>
+        <div>
+            <strong><a href="/explore/">Explore</a></strong> |
+            <a href="/users/{{ logname }}/">{{ logname }}</a>
+        </div>
+    </div>
+    
+    <h3>{{logname}}</h3>
+    <img src="{{user_img_url}}" alt="profile picture">
+    
+    <form action="/accounts?target=/accounts/edit/" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="image/*"/>
+        <input type="text" name="fullname" value="{{logname}}" required/>
+        <input type="text" name="email" value="{{email}}" required/>
+        <input type="submit" name="update" value="Submit"/>
+        <input type="hidden" name="operation" value="edit_account"/>
+    </form>
+
+    <p><a href="/accounts/password/">Change Password</a></p>
+    <p><a href="/accounts/delete/">Delete Account</a></p>
+  
+</body>
+</html>

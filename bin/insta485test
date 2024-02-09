@@ -1,0 +1,18 @@
+#!/bin/bash
+
+set -Eeuo pipefail
+set -x
+
+echo "Running pycodestyle insta485"
+pycodestyle insta485 || exit 1
+
+echo "Running pydocstyle insta485"
+pydocstyle insta485 || exit 1
+
+echo "Running pylint insta485"
+pylint insta485 || exit 1
+
+echo "Running pytest -v tests"
+pytest -v tests || exit 1
+
+echo "All tests passed successfully!"
