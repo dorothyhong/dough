@@ -139,15 +139,15 @@ def show_user_following(username):
 
 # def get_recent_posts(user):
 #     """Get recent posts."""
-#     connection = insta485.model.get_db()
-#     cursor = connection.cursor()
-#     cursor.execute("""
-#         SELECT postid, filename, owner, created
-#         FROM posts
-#         WHERE owner = ?
-#         ORDER BY postid DESC;
-#     """, (user,))
-#     posts = cursor.fetchall()
+    # connection = insta485.model.get_db()
+    # cursor = connection.cursor()
+    # cursor.execute("""
+    #     SELECT postid, filename, owner, created
+    #     FROM posts
+    #     WHERE owner = ?
+    #     ORDER BY postid DESC;
+    # """, (user,))
+    # posts = cursor.fetchall()
 #     connection = insta485.model.close_db("error")
 
 #     return posts

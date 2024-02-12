@@ -10,6 +10,9 @@ if [ ! -f var/insta485.sqlite3 ]; then
     exit 1
 fi
 
+npx webpack --watch &
+echo "+ npx webpack --watch &"
+
 # Run the development server
 flask --app insta485 --debug run --host 0.0.0.0 --port 8000
 echo "+ flask --app insta485 --debug run --host 0.0.0.0 --port 8000"
