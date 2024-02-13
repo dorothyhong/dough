@@ -15,8 +15,9 @@ def get_urls():
   return flask.jsonify(**context), 200
 
 
-def verify_username_password(username, password):
+def verify_username_password(username, password, users):
   return username in users and password == users['password']
+
 
 
 @insta485.app.route('/api/v1/posts/')
@@ -43,19 +44,20 @@ def get_new_posts():
   elif auth:
     username = flask.request.authorization['username']
     password = flask.request.authorization['password']
-    verify_username_password(username, password)
     
     connection = insta485.model.get_db()
-    cursor = connection.cursor()
     cursor2 = connection.cursor()
     cursor2.execute(
       """
         SELECT username
         FROM users
-        WHERE userame = ?
+        WHERE username = ?
       """, (username))
     
-  
+    users = cursor2.fetchall()  
+    verify_username_password(username, password, users)
+    
+    cursor = connection.cursor()
     cursor.execute(
       """
         SELECT postid, filename, owner, created
@@ -66,8 +68,6 @@ def get_new_posts():
         LIMIT 10;
     """, (username, username,))
     posts = cursor.fetchall()
-    connection = insta485.model.close_db("error")
-    users = cursor2.fetchall()  
     return flask.jsonify(**posts), 200
   flask.abort(403)
   
@@ -80,7 +80,6 @@ def get_new_posts():
 #     posts = cursor.fetchall()
 #     connection = insta485.model.close_db("error")
 #     return posts
-
 
 
 @insta485.app.route('/api/v1/posts/<int:postid_url_slug>/')
