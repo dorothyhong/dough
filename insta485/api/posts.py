@@ -2,6 +2,7 @@
 import flask
 from flask import session
 import insta485
+from insta485.views.accounts import authenticate, verify_password
 
 
 @insta485.app.route('/api/v1/')
@@ -15,60 +16,53 @@ def get_urls():
   return flask.jsonify(**context), 200
 
 
-def verify_username_password(username, password, users):
-  return username in users and password == users['password']
+# def verify_username_password(username, password, users):
+#   return username in users and password == users['password']
 
 
 
 @insta485.app.route('/api/v1/posts/')
 def get_new_posts():
   
-  auth = flask.request.authorization
+  username = flask.request.authorization['username']
+  password = flask.request.authorization['password']
+  
+  if authenticate(username, password): 
+    connection = insta485.model.get_db()
+    cursor = connection.cursor()
+    cursor.execute(
+      """
+        SELECT postid
+        FROM posts
+        WHERE owner = ? OR owner IN
+        (SELECT username2 FROM following WHERE username1 = ?)
+        ORDER BY postid DESC
+        LIMIT 10;
+    """, (username, username,))
+    posts = cursor.fetchall()
+    
 
-  """Get 10 recent posts."""
-  if not auth:
-    username = session["username"]
-    connection = insta485.model.get_db()
-    cursor = connection.cursor()
-    cursor.execute(
-      """
-        SELECT postid, filename, owner, created
-        FROM posts
-        WHERE owner = ? OR owner IN
-        (SELECT username2 FROM following WHERE username1 = ?)
-        ORDER BY postid DESC
-        LIMIT 10;
-    """, (username, username,))
-    posts = cursor.fetchall()
-    connection = insta485.model.close_db("error")
-  elif auth:
-    username = flask.request.authorization['username']
-    password = flask.request.authorization['password']
+    context = {}
+    context["next"] = ""
+    context["results"] = []
+    context["url"] = "/api/v1/posts/"
     
-    connection = insta485.model.get_db()
-    cursor2 = connection.cursor()
-    cursor2.execute(
-      """
-        SELECT username
-        FROM users
-        WHERE username = ?
-      """, (username))
+    for post in posts:
+      postid = post['postid']
+      context["results"].append( { "postid" : postid, "url" : "/api/v1/posts/" + str(postid) + "/" } )
+
+      
+    # if len(posts) < size:
+    #   context["next"] = ""
+    # else:
+    #   next_page = page + 1
+    #   next_url = f"/api/v1/posts/?size={size}&page={next_page}&postid_lte={postid_lte or ''}"
+    #   context["next"] = next_url
     
-    users = cursor2.fetchall()  
-    verify_username_password(username, password, users)
     
-    cursor = connection.cursor()
-    cursor.execute(
-      """
-        SELECT postid, filename, owner, created
-        FROM posts
-        WHERE owner = ? OR owner IN
-        (SELECT username2 FROM following WHERE username1 = ?)
-        ORDER BY postid DESC
-        LIMIT 10;
-    """, (username, username,))
-    posts = cursor.fetchall()
-    return flask.jsonify(**posts), 200
+    return flask.jsonify(**context), 200
+
+
   flask.abort(403)
   
   

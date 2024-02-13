@@ -392,23 +392,7 @@ def verify_password(password, original_password_hash):
 
     salt = split[1] if len(split) == 3 else None
     password_hash = gen_hashed_passwd(password, salt)
-    # pwd = gen_hashed_passwd(original_password_hash, salt)
-    # print("new hashed password: " + password_hash)
-    # print("og passwrd: " + pwd)
     return password_hash == original_password_hash
-
-# def get_post_by_id(postid):
-#     """Get post id."""
-#     connection = insta485.model.get_db()
-#     cursor = connection.cursor()
-#     cursor.execute("""
-#         SELECT postid, filename, owner, created
-#         FROM posts
-#         WHERE postid = ?;
-#     """, (postid,))
-#     post = cursor.fetchone()
-#     connection = insta485.model.close_db("error")
-#     return post
 
 
 def get_post_by_id(postid):
