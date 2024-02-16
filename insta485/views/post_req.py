@@ -62,7 +62,7 @@ def add_like(post_id, user):
 
 
 def remove_like(post_id, user):
-    """Post  remove like."""
+    """Post remove like."""
     connection = insta485.model.get_db()
     cursor = connection.cursor()
     cursor.execute("""
