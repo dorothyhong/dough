@@ -117,22 +117,40 @@ def logout():
     return flask.redirect(flask.url_for('show_login'))
 
 
+# def authenticate(username, password):
+#     """Authenticate user."""
+#     connection = insta485.model.get_db()
+#     cursor = connection.cursor()
+
+#     # Fetch the user from the database
+#     cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?",
+#                    (username,))
+#     result = cursor.fetchone()['COUNT(*)']
+#     check = result > 0
+
+#     if check:
+#         stored_passwd = get_old_passwd(username)
+#         return verify_password(password, stored_passwd['password'])
+
+#     return False
+
 def authenticate(username, password):
     """Authenticate user."""
     connection = insta485.model.get_db()
     cursor = connection.cursor()
 
     # Fetch the user from the database
-    cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?",
-                   (username,))
+    cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?", (username,))
     result = cursor.fetchone()['COUNT(*)']
-    check = result > 0
+    user_exists = result > 0
 
-    if check:
+    if user_exists:
         stored_passwd = get_old_passwd(username)
-        return verify_password(password, stored_passwd['password'])
+        if stored_passwd:
+            return verify_password(password, stored_passwd['password'])
 
     return False
+
 
 
 @insta485.app.route('/accounts/', methods=['POST'])

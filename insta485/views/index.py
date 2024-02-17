@@ -120,7 +120,6 @@ def get_comments_for_post(postid):
         ORDER BY created ASC;
     """, (postid,))
     comments = cursor.fetchall()
-    connection = insta485.model.close_db("error")
     return comments
 
 
@@ -131,8 +130,6 @@ def get_user_profile_picture(username):
     cursor.execute("SELECT filename FROM users WHERE username = ?;",
                    (username,))
     profile_picture = cursor.fetchone()
-    connection = insta485.model.close_db("error")
-
     return profile_picture['filename']
 
 
