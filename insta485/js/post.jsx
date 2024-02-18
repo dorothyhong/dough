@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import Comments from "./comments"
-import Likes from "./likes"
-
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
+import Comments from "./comments";
+import Likes from "./likes";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -18,8 +17,8 @@ export default function Post({ url }) {
   const initialLikes = {
     "lognameLikesThis": true,
     "numLikes": 1,
-    "url": "/api/v1/likes/6/"
-  };
+    "url": "/api/v1/likes/1/"
+  };  
 
   const [imgUrl, setImgUrl] = useState("");
   const [owner, setOwner] = useState("");
@@ -50,7 +49,7 @@ export default function Post({ url }) {
 
          
           const localTime = dayjs.utc(data.createdAt).local();
-          const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss");
+          // const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss"); TODO: never used
           const humanReadableTimestamp = localTime.fromNow();
           setCreatedAt(humanReadableTimestamp);
 
@@ -69,41 +68,74 @@ export default function Post({ url }) {
   }, [url]);
 
   const toggleLike = () => {
+    const postid = 1
+    // Determine if the action is to create (like) or delete (unlike)
+    const isLiked = likes.lognameLikesThis;
     const requestOptions = {
-      method: likes.lognameLikesThis ? 'DELETE' : 'POST',
+      method: isLiked ? 'DELETE' : 'POST',
       credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: isLiked ? JSON.stringify({ }): JSON.stringify({ postid: 1 }),
     };
-    console.log(likes.url);
-    fetch(likes.url, requestOptions)
+  
+    // may need to be postid=${encodeURIComponent(postid)}
+    const likeurl = isLiked ? likes.url: `http://localhost:8000/api/v1/likes/?postid=${postid}`; 
+    console.log(likeurl)
+    console.log(requestOptions.method)
+    fetch(likeurl, requestOptions)
       .then((response) => {
+        console.log(response);
         if (!response.ok) {
           const contentType = response.headers.get('Content-Type');
           if (contentType && contentType.includes('application/json')) {
             // Parse response as JSON if the Content-Type is 'application/json'
             return response.json().then((data) => Promise.reject(data));
-          } else {
-            // If response is not JSON, it could be text or HTML
-            return response.text().then((text) => Promise.reject(text));
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        if (response.ok) {
+          // For DELETE requests with a 204 response, handle here without .json() parsing
+          if (response.status === 204) {
+            return {}; // Return an empty object which will be used in the follow-up .then()
           }
         }
         return response.json();
       })
       .then((data) => {
-        // Existing toggle logic...
+        setLikes(() => {
+          if (!isLiked) {
+            // Handle new like
+            return {
+              lognameLikesThis: true,
+              numLikes: likes.numLikes + 1,
+              url: data.url, // Assuming the backend returns the correct like URL
+            };
+          }
+          // Handle unlike
+          return {
+            lognameLikesThis: false,
+            numLikes: likes.numLikes - 1,
+            url: '', // Clear the URL as it's an 'unlike' request
+          };
+        });
       })
       .catch((error) => {
         console.error('Error during toggle:', error);
-        // You might want to show an error message to the user here
+        // Consider how to communicate this error to the user
       });
   };
 
   const handleDeleteComment = (commentid) => {
-    url = `/api/v1/comments/${commentid}/`
-    fetch(url, {
-       credentials: "same-origin" 
+
+    let ignoreStaleRequest = false;
+
+    console.log(commentid);
+    const commentUrl = `/api/v1/comments/${commentid}/`;
+    fetch(commentUrl, {
+       credentials: "same-origin",
+       method: "DELETE"
       })
     .then((response) => {
       if (!response.ok) throw Error(response.statusText);
@@ -120,7 +152,7 @@ export default function Post({ url }) {
 
        
         const localTime = dayjs.utc(data.createdAt).local();
-        const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss");
+        // const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss");
         const humanReadableTimestamp = localTime.fromNow();
         setCreatedAt(humanReadableTimestamp);
 
@@ -130,6 +162,12 @@ export default function Post({ url }) {
       }
     })
     .catch((error) => console.log(error));
+    return () => {
+      // This is a cleanup function that runs whenever the Post component
+      // unmounts or re-renders. If a Post is about to unmount or re-render, we
+      // should avoid updating state.
+      ignoreStaleRequest = true;
+    };
 
 }
 
@@ -141,6 +179,8 @@ export default function Post({ url }) {
   // };
 
   // Render post image and post owner
+
+  //  
   return (
     <div className="post">
       <p>{owner}</p>

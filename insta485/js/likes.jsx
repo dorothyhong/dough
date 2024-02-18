@@ -5,7 +5,7 @@ export default function Likes({ likes, onToggleLike }) {
     const buttonText = likes.lognameLikesThis ? 'Unlike' : 'Like';
     return (
         <div>
-            <button data-testid="like-unlike-button" onClick={onToggleLike}>
+            <button type="button" data-testid="like-unlike-button" onClick={onToggleLike}>
                 {buttonText}
             </button>
             {likes.numLikes}
@@ -18,6 +18,7 @@ Likes.propTypes = {
     likes: PropTypes.shape({
       lognameLikesThis: PropTypes.bool.isRequired,
       numLikes: PropTypes.number.isRequired,
-      url: PropTypes.string.isRequired,
+      url: PropTypes.oneOfType([PropTypes.string, PropTypes.oneOf([null])]).isRequired,
     }).isRequired,
+    onToggleLike: PropTypes.func.isRequired, 
 };
