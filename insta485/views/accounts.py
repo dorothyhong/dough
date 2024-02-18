@@ -145,6 +145,7 @@ def authenticate(username, password):
     user_exists = result > 0
 
     if user_exists:
+        print("HELLOOOOO")
         stored_passwd = get_old_passwd(username)
         if stored_passwd:
             return verify_password(password, stored_passwd['password'])
