@@ -129,8 +129,6 @@ export default function Post({ url }) {
 
   const handleDeleteComment = (commentid) => {
 
-    let ignoreStaleRequest = false;
-
     console.log(commentid);
     const commentUrl = `/api/v1/comments/${commentid}/`;
     fetch(commentUrl, {
@@ -139,34 +137,14 @@ export default function Post({ url }) {
       })
     .then((response) => {
       if (!response.ok) throw Error(response.statusText);
-      return response.json();
-    })
-    .then((data) => {
-      // If ignoreStaleRequest was set to true, we want to ignore the results of the
-      // the request. Otherwise, update the state to trigger a new render.
-      if (!ignoreStaleRequest) {
-        setImgUrl(data.imgUrl);
-        setOwner(data.owner);
-        setComments(data.comments);
-        setLikes(data.likes);
-
-       
-        const localTime = dayjs.utc(data.createdAt).local();
-        // const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss");
-        const humanReadableTimestamp = localTime.fromNow();
-        setCreatedAt(humanReadableTimestamp);
-
-        // Store the URL for the next set of posts
-        // setNextPostUrl(data.next);
-
-      }
+      setComments((prevComments) => prevComments.filter((comment) => comment.commentid !== commentid));
     })
     .catch((error) => console.log(error));
     return () => {
       // This is a cleanup function that runs whenever the Post component
       // unmounts or re-renders. If a Post is about to unmount or re-render, we
       // should avoid updating state.
-      ignoreStaleRequest = true;
+      // ignoreStaleRequest = true;
     };
 
 }
