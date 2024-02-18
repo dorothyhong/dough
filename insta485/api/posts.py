@@ -296,14 +296,30 @@ def create_like():
 
 
 
+# def delete_like(likeid):
+#     """Post remove like."""
+#     connection = insta485.model.get_db()
+#     cursor = connection.cursor()
+#     cursor.execute("""
+#         DELETE FROM likes
+#         WHERE likeid = ?
+#     """, (likeid))
+    
 def delete_like(likeid):
     """Post remove like."""
-    connection = insta485.model.get_db()
-    cursor = connection.cursor()
-    cursor.execute("""
-        DELETE FROM likes
-        WHERE likeid = ?
-    """, (likeid))
+    try:
+        connection = insta485.model.get_db()
+        cursor = connection.cursor()
+        cursor.execute("""
+            DELETE FROM likes
+            WHERE likeid = ?
+        """, (likeid,))
+        connection.commit()
+        return True  # Return a value to signify success
+    except Exception as e:
+        # Log the exception, return False, or take other appropriate action
+        flask.logging.error(f"An error occurred when deleting like with likeid {likeid}: {e}")
+        return False  # Or you could re-raise the exception after logging
 
 
 @insta485.app.route('/api/v1/likes/<likeid>/', methods=["DELETE"])
