@@ -11,7 +11,7 @@ dayjs.extend(utc);
 
 // The parameter of this function is an object with a string called url inside it.
 // url is a prop forhfhrt the Post component.
-export default function Post({ url }) {
+export default function Post({ url, postId }) {
   /* Display image and post owner of a single post */
 
   const initialLikes = {
@@ -20,11 +20,13 @@ export default function Post({ url }) {
     "url": "/api/v1/likes/1/"
   };  
 
+  const [ownerImgUrl, setOwnerImgUrl] = useState("");
   const [imgUrl, setImgUrl] = useState("");
   const [owner, setOwner] = useState("");
   const [comments, setComments] = useState([]);
   const [likes, setLikes] = useState(initialLikes);
   const [createdAt, setCreatedAt] = useState("");
+  const [postShowUrl, setPostShowUrl] = useState("");
   // const [nextPageUrl, setNextPageUrl] = useState(null); // State to store next page URL
 
 
@@ -42,10 +44,12 @@ export default function Post({ url }) {
         // If ignoreStaleRequest was set to true, we want to ignore the results of the
         // the request. Otherwise, update the state to trigger a new render.
         if (!ignoreStaleRequest) {
+          setOwnerImgUrl(data.ownerImgUrl); 
           setImgUrl(data.imgUrl);
           setOwner(data.owner);
           setComments(data.comments);
           setLikes(data.likes);
+          setPostShowUrl(data.postShowUrl);
 
          
           const localTime = dayjs.utc(data.createdAt).local();
@@ -68,7 +72,6 @@ export default function Post({ url }) {
   }, [url]);
 
   const toggleLike = () => {
-    const postid = 1
     // Determine if the action is to create (like) or delete (unlike)
     const isLiked = likes.lognameLikesThis;
     const requestOptions = {
@@ -77,11 +80,11 @@ export default function Post({ url }) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: isLiked ? JSON.stringify({ }): JSON.stringify({ postid: 1 }),
+      body: isLiked ? JSON.stringify({ }): JSON.stringify({ postid: postId }),
     };
   
     // may need to be postid=${encodeURIComponent(postid)}
-    const likeurl = isLiked ? likes.url: `http://localhost:8000/api/v1/likes/?postid=${postid}`; 
+    const likeurl = isLiked ? likes.url: `http://localhost:8000/api/v1/likes/?postid=${postId}`; 
     console.log(likeurl)
     console.log(requestOptions.method)
     fetch(likeurl, requestOptions)
@@ -127,10 +130,37 @@ export default function Post({ url }) {
       });
   };
 
+  const handleCreateComment = (text, onSuccess) => {
+    const commentUrl = `/api/v1/comments/?postid=${postId}`;
+    fetch(commentUrl, {
+       credentials: "same-origin",
+       method: "POST",
+       body: JSON.stringify({ text }),
+       headers: {
+        'Content-Type': 'application/json', // Missing 'Content-Type' header
+       },
+      })
+    .then((response) => {
+      if (!response.ok) throw Error(response.statusText);
+      return response.json();
+    })
+    .then((data) => {
+      setComments([...comments, data]);
+      console.log(comments)
+      if(onSuccess) {
+        onSuccess(data);
+      }
+    })
+    .catch((error) => console.log(error));
+    return () => {
+      
+    };
+  }
+
   const handleDeleteComment = (commentid) => {
 
     console.log(commentid);
-    const commentUrl = `/api/v1/comments/${commentid}/`;
+    const commentUrl = `/api/v1/comments/${commentid}`;
     fetch(commentUrl, {
        credentials: "same-origin",
        method: "DELETE"
@@ -158,15 +188,15 @@ export default function Post({ url }) {
 
   // Render post image and post owner
 
-  //  
   return (
     <div className="post">
+      <img src={ownerImgUrl} alt="profile_image" />
       <p>{owner}</p>
-      <p>{createdAt}</p>
+      <a href={postShowUrl}>{createdAt}</a>
       <img src={imgUrl} alt="post_image" />
 
       < Likes likes = {likes} onToggleLike={toggleLike}/>
-      < Comments comments={comments} handleDeleteComment={handleDeleteComment} />
+      < Comments comments={comments} handleDeleteComment={handleDeleteComment} handleCreateComment={handleCreateComment} />
 
      
     </div>
@@ -175,5 +205,6 @@ export default function Post({ url }) {
 
 Post.propTypes = {
   url: PropTypes.string.isRequired,
+  postId: PropTypes.number.isRequired,
 };
 

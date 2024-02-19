@@ -1,27 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 
 // condition ? exprIfTrue : exprIfFalse
 
-export default function Comments({ comments, handleDeleteComment }) {
 
+
+export default function Comments({ comments, handleDeleteComment, handleCreateComment }) {
+
+  const [text, setText] = useState("");
     
-    const renderedCommentList = comments.map((comment) => (
-        
-            <div key={comment.commentid} >
-                <a href={`/users/${ comment.owner }/`}>{comment.owner}</a>
-                <div>{comment.text}</div>
-                <div>{comment.lognameOwnsThis 
-                ? <button type="button" onClick={() => handleDeleteComment(comment.commentid)}>Delete</button> : " " }
-                </div>
-            </div>
-            
-    ));
+  const renderedCommentList = comments.map((comment) => (
+      
+    <div key={comment.commentid} >
+        <a href={`/users/${ comment.owner }/`}>{comment.owner}</a>
+        <span data-testid="comment-text">{comment.text}</span>
+        <div>{comment.lognameOwnsThis 
+        ? <button data-testid="delete-comment-button" type="button" onClick={() => handleDeleteComment(comment.commentid)}>Delete</button> : " " }
+        </div>
+    </div>
+          
+  ));
+
+  const handleTextChange = (event) => {
+    setText(event.target.value);
+  }
     
 
-    return (
-        <div>{renderedCommentList}</div>
-    );
+  return (
+    <div>
+      <div>{renderedCommentList}</div>
+      <form onSubmit={e => {
+        e.preventDefault();
+        handleCreateComment(text, () => {
+          setText('');
+        });
+      }}data-testid="comment-form"> 
+        <input type="text" onChange={handleTextChange} value={text}/>
+      </form>
+    </div>
+  );
 
 }
 
@@ -37,5 +54,6 @@ Comments.propTypes = {
       }),
     ).isRequired,
     handleDeleteComment: PropTypes.func.isRequired,
+    handleCreateComment: PropTypes.func.isRequired,
 };
   
