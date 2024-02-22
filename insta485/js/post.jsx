@@ -51,7 +51,8 @@ export default function Post({ url, postId }) {
           setLikes(data.likes);
           setPostShowUrl(data.postShowUrl);
 
-          const localTime = dayjs.utc(data.createdAt).local();
+          const localTime = dayjs.utc(data.created).local();
+          console.log("createdat ", data.created);
           const humanReadableTimestamp = localTime.fromNow();
           setCreatedAt(humanReadableTimestamp);
 
