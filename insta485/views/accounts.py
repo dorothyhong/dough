@@ -140,7 +140,8 @@ def authenticate(username, password):
     cursor = connection.cursor()
 
     # Fetch the user from the database
-    cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT COUNT(*) FROM users WHERE username = ?",
+                   (username,))
     result = cursor.fetchone()['COUNT(*)']
     user_exists = result > 0
 
@@ -151,7 +152,6 @@ def authenticate(username, password):
             return verify_password(password, stored_passwd['password'])
 
     return False
-
 
 
 @insta485.app.route('/accounts/', methods=['POST'])

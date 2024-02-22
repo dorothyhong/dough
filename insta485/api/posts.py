@@ -3,36 +3,31 @@ import flask
 from flask import session, request, abort
 import insta485
 from insta485.views.accounts import authenticate, get_old_passwd
-from insta485.views.index import get_comments_for_post, get_likes_count, get_user_profile_picture
+from insta485.views.index import get_comments_for_post, get_likes_count
+from insta485.views.index import get_user_profile_picture
 
 
 @insta485.app.route('/api/v1/')
 def get_urls():
     """Get urls."""
     context = {
-    "comments": "/api/v1/comments/",
-    "likes": "/api/v1/likes/",
-    "posts": "/api/v1/posts/",
-    "url": "/api/v1/"
+        "comments": "/api/v1/comments/",
+        "likes": "/api/v1/likes/",
+        "posts": "/api/v1/posts/",
+        "url": "/api/v1/"
     }
     return flask.jsonify(**context), 200
 
 
 # def verify_username_password(username, password, users):
 #   return username in users and password == users['password']
-
-
-@insta485.app.route('/api/v1/posts/', methods=['GET'])
-def get_new_posts():
-    """Get new posts"""
-    
-    username = ""
-    password = ""
-    # Check if user is authenticated using HTTP Basic Auth or session cookies
+def authenticate_helper():
+    """Help authenticate posts."""
     if flask.request.authorization:
         username = request.authorization['username']
         password = request.authorization['password']
-    elif "username" in session:
+        return username, password
+    if "username" in session:
         username = session['username']
         connection = insta485.model.get_db()
         cursor = connection.cursor()
@@ -41,14 +36,17 @@ def get_new_posts():
                        WHERE username = ?""",
                        (username,))
         password = cursor.fetchone()['password']
-        # print(username)
-        # print(password)
-    else:
-        abort(403)  # No authentication credentials provided
-        
+        return username, password
+    return abort(403)
 
-    # Authenticate user
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
+
+@insta485.app.route('/api/v1/posts/', methods=['GET'])
+def get_new_posts():
+    """Get new posts."""
+    username, password = authenticate_helper()
+
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
         # Get parameters from request
         size = request.args.get('size', type=int)
         page = request.args.get('page', type=int)
@@ -72,7 +70,6 @@ def get_new_posts():
 
         if size is None:
             size = 10
-
 
         if page is None:
             page = 0
@@ -108,15 +105,19 @@ def get_new_posts():
         context["results"] = []
 
         for post in posts:
-            postid_temp = post['postid']
-            context["results"].append({"postid": post['postid'],
-                                       "url": f"/api/v1/posts/{postid_temp}/"})
+            context["results"].append({
+                "postid": post['postid'],
+                "url": f"/api/v1/posts/{post['postid']}/"
+            })
 
         # Determine next URL
-        if len(posts) < size:
-            context["next"] = ""
-        else:
-            context["next"] = (f"/api/v1/posts/?size={size}&page={page + 1}&postid_lte={postid_lte}")
+        context["next"] = ""
+        if len(posts) >= size:
+            context["next"] = (
+                f"/api/v1/posts/?size={size}"
+                f"&page={page + 1}"
+                f"&postid_lte={postid_lte}"
+            )
 
         return flask.jsonify(**context), 200
 
@@ -125,7 +126,7 @@ def get_new_posts():
 
 @insta485.app.route('/api/v1/posts/<postid>/', methods=["GET"])
 def get_post_detail(postid):
-    """Get post details"""
+    """Get post details."""
     # Check if basic authorization information is available
     username = ""
     password = ""
@@ -147,7 +148,8 @@ def get_post_detail(postid):
     else:
         abort(403)  # No authentication credentials provided
 
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
         connection = insta485.model.get_db()
         cursor = connection.cursor()
 
@@ -218,7 +220,7 @@ def get_post_detail(postid):
 
 
 def get_most_recent_likeid():
-    """Get most recent like id"""
+    """Get most recent like id."""
     connection = insta485.model.get_db()
     cursor = connection.cursor()
 
@@ -234,7 +236,7 @@ def get_most_recent_likeid():
 
 @insta485.app.route('/api/v1/likes/', methods=["POST"])
 def create_like():
-    """create a like at postid"""
+    """Create a like at postid."""
     username = ""
     password = ""
     # Check if user is authenticated using HTTP Basic Auth or session cookies
@@ -253,11 +255,12 @@ def create_like():
         # print(username)
         # print(password)
     else:
-        abort(403)  # No authentication credentials provided
-        
+        abort(403)
+
     postid = flask.request.args.get('postid')
     # Authenticate user
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
         connection = insta485.model.get_db()
         cursor = connection.cursor()
 
@@ -269,6 +272,9 @@ def create_like():
         )
         existing_like = cursor.fetchone()
 
+        print("check existing like")
+        print(existing_like)
+
         if existing_like:
             # Like already exists, return the like object
             existing = existing_like['likeid']
@@ -276,6 +282,9 @@ def create_like():
                 "likeid": existing_like['likeid'],
                 "url": f"/api/v1/likes/{existing}/"
             }), 200
+
+        print("CHECK: like doesn't exist")
+
         # use to be else here
         # Create the like
         cursor.execute(
@@ -283,10 +292,18 @@ def create_like():
             INSERT INTO likes (owner, postid) VALUES (?, ?);
             """, (username, postid)
         )
+
+        print("insert like")
+        print(username)
+        print(postid)
+
         connection.commit()
 
         # Retrieve the likeid of the newly created like
         likeid = cursor.lastrowid
+
+        print("CHECK likeid")
+        print(likeid)
 
         return flask.jsonify({
             "likeid": likeid,
@@ -295,36 +312,9 @@ def create_like():
     flask.abort(403)
 
 
-
-# def delete_like(likeid):
-#     """Post remove like."""
-#     connection = insta485.model.get_db()
-#     cursor = connection.cursor()
-#     cursor.execute("""
-#         DELETE FROM likes
-#         WHERE likeid = ?
-#     """, (likeid))
-    
-def delete_like(likeid):
-    """Post remove like."""
-    try:
-        connection = insta485.model.get_db()
-        cursor = connection.cursor()
-        cursor.execute("""
-            DELETE FROM likes
-            WHERE likeid = ?
-        """, (likeid,))
-        connection.commit()
-        return True  # Return a value to signify success
-    except Exception as e:
-        # Log the exception, return False, or take other appropriate action
-        flask.logging.error(f"An error occurred when deleting like with likeid {likeid}: {e}")
-        return False  # Or you could re-raise the exception after logging
-
-
 @insta485.app.route('/api/v1/likes/<likeid>/', methods=["DELETE"])
 def remove_like(likeid):
-    """remove like"""
+    """Remove like."""
     username = ""
     password = ""
     # Check if user is authenticated using HTTP Basic Auth or session cookies
@@ -340,22 +330,21 @@ def remove_like(likeid):
                        WHERE username = ?""",
                        (username,))
         password = cursor.fetchone()['password']
-        # print(username)
-        # print(password)
     else:
         abort(403)  # No authentication credentials provided
-        
 
-    # Authenticate user
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
 
         connection = insta485.model.get_db()
         cursor = connection.cursor()
+
         cursor.execute(
             """
             SELECT owner FROM likes WHERE likeid = ?;
-            """, (likeid)
+            """, (likeid,)
         )
+
         like_owner = cursor.fetchone()
 
         if like_owner is None:
@@ -364,7 +353,15 @@ def remove_like(likeid):
             if like_owner['owner'] != username:
                 abort(403)
             else:
-                delete_like(likeid)
+                # delete_like(likeid)
+                cursor.execute("""
+                    DELETE FROM likes
+                    WHERE likeid = ?
+                """, (likeid,))
+                connection.commit()
+
+                print("delete likeid")
+                print(likeid)
 
         context = {}
 
@@ -372,10 +369,9 @@ def remove_like(likeid):
     flask.abort(403)
 
 
-
 @insta485.app.route('/api/v1/comments/', methods=["POST"])
 def create_comment():
-    """create comment"""
+    """Create comment."""
     username = ""
     password = ""
     # Check if user is authenticated using HTTP Basic Auth or session cookies
@@ -394,10 +390,10 @@ def create_comment():
         # print(username)
         # print(password)
     else:
-        abort(403)  # No authentication credentials provided
+        abort(403)
 
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
-    # password = flask.request.authorization['password']
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
         text = flask.request.json.get("text", None)
         postid = flask.request.args.get('postid')
 
@@ -431,9 +427,10 @@ def create_comment():
 
     flask.abort(403)
 
+
 @insta485.app.route('/api/v1/comments/<commentid>/', methods=["DELETE"])
 def delete_comment(commentid):
-    """delete comment"""
+    """Delete comment."""
     # Check if basic authorization information is available
     username = ""
     password = ""
@@ -455,7 +452,8 @@ def delete_comment(commentid):
     else:
         abort(403)  # No authentication credentials provided
 
-    if authenticate(username, password) or (password == (get_old_passwd(username)['password'])):
+    if (authenticate(username, password) or
+       (password == (get_old_passwd(username)['password']))):
         connection = insta485.model.get_db()
         cursor = connection.cursor()
         cursor.execute(
@@ -463,12 +461,12 @@ def delete_comment(commentid):
             SELECT owner FROM comments WHERE commentid = ?;
             """, (commentid)
         )
-        like_owner = cursor.fetchone()
+        comment_owner = cursor.fetchone()
 
-        if like_owner is None:
+        if comment_owner is None:
             abort(404)
         else:
-            if like_owner["owner"] != username:
+            if comment_owner["owner"] != username:
                 abort(403)
             else:
                 cursor.execute("""

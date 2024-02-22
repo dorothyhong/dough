@@ -15,10 +15,10 @@ export default function Post({ url, postId }) {
   /* Display image and post owner of a single post */
 
   const initialLikes = {
-    "lognameLikesThis": true,
-    "numLikes": 1,
-    "url": "/api/v1/likes/1/"
-  };  
+    lognameLikesThis: false,
+    numLikes: 1,
+    url: "/api/v1/likes/1",
+  };
 
   const [ownerImgUrl, setOwnerImgUrl] = useState("");
   const [imgUrl, setImgUrl] = useState("");
@@ -27,8 +27,8 @@ export default function Post({ url, postId }) {
   const [likes, setLikes] = useState(initialLikes);
   const [createdAt, setCreatedAt] = useState("");
   const [postShowUrl, setPostShowUrl] = useState("");
-  // const [nextPageUrl, setNextPageUrl] = useState(null); // State to store next page URL
 
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     // Declare a boolean flag that we can use to cancel the API request.
@@ -44,21 +44,18 @@ export default function Post({ url, postId }) {
         // If ignoreStaleRequest was set to true, we want to ignore the results of the
         // the request. Otherwise, update the state to trigger a new render.
         if (!ignoreStaleRequest) {
-          setOwnerImgUrl(data.ownerImgUrl); 
+          setOwnerImgUrl(data.ownerImgUrl);
           setImgUrl(data.imgUrl);
           setOwner(data.owner);
           setComments(data.comments);
           setLikes(data.likes);
           setPostShowUrl(data.postShowUrl);
 
-         
           const localTime = dayjs.utc(data.createdAt).local();
-          // const formattedTimestamp = localTime.format("YYYY-MM-DD HH:mm:ss"); TODO: never used
           const humanReadableTimestamp = localTime.fromNow();
           setCreatedAt(humanReadableTimestamp);
 
-          // setPosts((prevPosts) => [...prevPosts, ...data.results]);
-          // setNextPageUrl(data.next); // Store the next page URL
+          setDataLoaded(true);
         }
       })
       .catch((error) => console.log(error));
@@ -74,25 +71,35 @@ export default function Post({ url, postId }) {
   const toggleLike = () => {
     // Determine if the action is to create (like) or delete (unlike)
     const isLiked = likes.lognameLikesThis;
+
+    console.log("Initial lognameLikesThis: ", likes.lognameLikesThis);
+    console.log("Toggling like for post ID:", postId);
+    console.log("Previous like status:", isLiked);
+
     const requestOptions = {
-      method: isLiked ? 'DELETE' : 'POST',
-      credentials: 'same-origin',
+      method: isLiked ? "DELETE" : "POST",
+      credentials: "same-origin",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      body: isLiked ? JSON.stringify({ }): JSON.stringify({ postid: postId }),
+      // body removed for DELETE request
+      body: isLiked ? undefined : JSON.stringify({ postid: postId }),
     };
-  
+
     // may need to be postid=${encodeURIComponent(postid)}
-    const likeurl = isLiked ? likes.url: `http://localhost:8000/api/v1/likes/?postid=${postId}`; 
-    console.log(likeurl)
-    console.log(requestOptions.method)
+    const likeurl = isLiked ? likes.url : `/api/v1/likes/?postid=${postId}`;
+
+    console.log("Sending request to:", likeurl);
+    console.log("Request method:", requestOptions.method);
+
     fetch(likeurl, requestOptions)
       .then((response) => {
+        console.log("Response status:", response.status);
         console.log(response);
+
         if (!response.ok) {
-          const contentType = response.headers.get('Content-Type');
-          if (contentType && contentType.includes('application/json')) {
+          const contentType = response.headers.get("Content-Type");
+          if (contentType && contentType.includes("application/json")) {
             // Parse response as JSON if the Content-Type is 'application/json'
             return response.json().then((data) => Promise.reject(data));
           }
@@ -107,98 +114,115 @@ export default function Post({ url, postId }) {
         return response.json();
       })
       .then((data) => {
-        setLikes(() => {
-          if (!isLiked) {
-            // Handle new like
-            return {
-              lognameLikesThis: true,
-              numLikes: likes.numLikes + 1,
-              url: data.url, // Assuming the backend returns the correct like URL
-            };
-          }
-          // Handle unlike
-          return {
+        console.log("Response data:", data);
+
+        if (!isLiked) {
+          setLikes({
+            lognameLikesThis: true,
+            numLikes: likes.numLikes + 1,
+            url: data.url,
+          });
+        } else {
+          setLikes({
             lognameLikesThis: false,
             numLikes: likes.numLikes - 1,
-            url: '', // Clear the URL as it's an 'unlike' request
-          };
-        });
+            url: null,
+          });
+        }
       })
       .catch((error) => {
-        console.error('Error during toggle:', error);
+        console.error("Error during toggle:", error);
         // Consider how to communicate this error to the user
       });
+  };
+
+  const handleDoubleClick = () => {
+    if (!likes.lognameLikesThis) {
+      console.log("here");
+      toggleLike(); // like the image if it's not liked already
+    }
+    // Do nothing if the image is already liked
   };
 
   const handleCreateComment = (text, onSuccess) => {
     const commentUrl = `/api/v1/comments/?postid=${postId}`;
     fetch(commentUrl, {
-       credentials: "same-origin",
-       method: "POST",
-       body: JSON.stringify({ text }),
-       headers: {
-        'Content-Type': 'application/json', // Missing 'Content-Type' header
-       },
+      credentials: "same-origin",
+      method: "POST",
+      body: JSON.stringify({ text }),
+      headers: {
+        "Content-Type": "application/json", // Missing 'Content-Type' header
+      },
+    })
+      .then((response) => {
+        console.log("COMMENTS POST");
+        console.log("Response status:", response.status);
+        console.log(response);
+
+        if (!response.ok) throw Error(response.statusText);
+        return response.json();
       })
-    .then((response) => {
-      if (!response.ok) throw Error(response.statusText);
-      return response.json();
-    })
-    .then((data) => {
-      setComments([...comments, data]);
-      console.log(comments)
-      if(onSuccess) {
-        onSuccess(data);
-      }
-    })
-    .catch((error) => console.log(error));
-    return () => {
-      
-    };
-  }
+      .then((data) => {
+        console.log("Response data:", data);
+
+        setComments([...comments, data]);
+        console.log(comments);
+        if (onSuccess) {
+          onSuccess(data);
+        }
+      })
+      .catch((error) => console.log(error));
+    return () => {};
+  };
 
   const handleDeleteComment = (commentid) => {
-
     console.log(commentid);
     const commentUrl = `/api/v1/comments/${commentid}`;
     fetch(commentUrl, {
-       credentials: "same-origin",
-       method: "DELETE"
-      })
-    .then((response) => {
-      if (!response.ok) throw Error(response.statusText);
-      setComments((prevComments) => prevComments.filter((comment) => comment.commentid !== commentid));
+      credentials: "same-origin",
+      method: "DELETE",
     })
-    .catch((error) => console.log(error));
+      .then((response) => {
+        console.log("COMMENTS POST");
+        console.log("Response status:", response.status);
+        console.log(response);
+
+        if (!response.ok) throw Error(response.statusText);
+        setComments((prevComments) =>
+          prevComments.filter((comment) => comment.commentid !== commentid),
+        );
+      })
+      .catch((error) => console.log(error));
     return () => {
       // This is a cleanup function that runs whenever the Post component
       // unmounts or re-renders. If a Post is about to unmount or re-render, we
       // should avoid updating state.
       // ignoreStaleRequest = true;
     };
-
-}
-
-  
-  // const handleNextPage = () => {
-  //   if (nextPageUrl) {
-  //     setUrl(nextPageUrl); // Fetch the next page
-  //   }
-  // };
+  };
 
   // Render post image and post owner
-
   return (
     <div className="post">
-      <img src={ownerImgUrl} alt="profile_image" />
+      <img
+        src={ownerImgUrl}
+        alt="profile_image"
+        // Optional: indicates the image is interactive
+      />
       <p>{owner}</p>
       <a href={postShowUrl}>{createdAt}</a>
-      <img src={imgUrl} alt="post_image" />
-
-      < Likes likes = {likes} onToggleLike={toggleLike}/>
-      < Comments comments={comments} handleDeleteComment={handleDeleteComment} handleCreateComment={handleCreateComment} />
-
-     
+      <img
+        src={imgUrl}
+        alt="post_image"
+        onDoubleClick={handleDoubleClick}
+        style={{ cursor: "pointer" }}
+      />
+      {dataLoaded && <Likes likes={likes} onToggleLike={toggleLike} />}
+      <Comments
+        comments={comments}
+        handleDeleteComment={handleDeleteComment}
+        handleCreateComment={handleCreateComment}
+      />
     </div>
   );
 }
@@ -207,4 +231,3 @@ Post.propTypes = {
   url: PropTypes.string.isRequired,
   postId: PropTypes.number.isRequired,
 };
-
