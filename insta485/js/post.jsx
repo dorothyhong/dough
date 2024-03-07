@@ -73,10 +73,6 @@ export default function Post({ url, postId }) {
     // Determine if the action is to create (like) or delete (unlike)
     const isLiked = likes.lognameLikesThis;
 
-    console.log("Initial lognameLikesThis: ", likes.lognameLikesThis);
-    console.log("Toggling like for post ID:", postId);
-    console.log("Previous like status:", isLiked);
-
     const requestOptions = {
       method: isLiked ? "DELETE" : "POST",
       credentials: "same-origin",
@@ -90,14 +86,8 @@ export default function Post({ url, postId }) {
     // may need to be postid=${encodeURIComponent(postid)}
     const likeurl = isLiked ? likes.url : `/api/v1/likes/?postid=${postId}`;
 
-    console.log("Sending request to:", likeurl);
-    console.log("Request method:", requestOptions.method);
-
     fetch(likeurl, requestOptions)
       .then((response) => {
-        console.log("Response status:", response.status);
-        console.log(response);
-
         if (!response.ok) {
           const contentType = response.headers.get("Content-Type");
           if (contentType && contentType.includes("application/json")) {
@@ -115,8 +105,6 @@ export default function Post({ url, postId }) {
         return response.json();
       })
       .then((data) => {
-        console.log("Response data:", data);
-
         if (!isLiked) {
           setLikes({
             lognameLikesThis: true,
@@ -132,14 +120,12 @@ export default function Post({ url, postId }) {
         }
       })
       .catch((error) => {
-        console.error("Error during toggle:", error);
         // Consider how to communicate this error to the user
       });
   };
 
   const handleDoubleClick = () => {
     if (!likes.lognameLikesThis) {
-      console.log("here");
       toggleLike(); // like the image if it's not liked already
     }
     // Do nothing if the image is already liked
@@ -156,18 +142,11 @@ export default function Post({ url, postId }) {
       },
     })
       .then((response) => {
-        console.log("COMMENTS POST");
-        console.log("Response status:", response.status);
-        console.log(response);
-
         if (!response.ok) throw Error(response.statusText);
         return response.json();
       })
       .then((data) => {
-        console.log("Response data:", data);
-
         setComments([...comments, data]);
-        console.log(comments);
         if (onSuccess) {
           onSuccess(data);
         }
@@ -184,10 +163,6 @@ export default function Post({ url, postId }) {
       method: "DELETE",
     })
       .then((response) => {
-        console.log("COMMENTS POST");
-        console.log("Response status:", response.status);
-        console.log(response);
-
         if (!response.ok) throw Error(response.statusText);
         setComments((prevComments) =>
           prevComments.filter((comment) => comment.commentid !== commentid),
@@ -195,10 +170,6 @@ export default function Post({ url, postId }) {
       })
       .catch((error) => console.log(error));
     return () => {
-      // This is a cleanup function that runs whenever the Post component
-      // unmounts or re-renders. If a Post is about to unmount or re-render, we
-      // should avoid updating state.
-      // ignoreStaleRequest = true;
     };
   };
 
