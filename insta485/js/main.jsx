@@ -2,6 +2,7 @@ import React, { StrictMode, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import InfiniteScroll from "react-infinite-scroll-component"; // Import InfiniteScroll
 import Post from "./post";
+// import "../css/style.css";
 
 // Create a root
 const root = createRoot(document.getElementById("reactEntry"));

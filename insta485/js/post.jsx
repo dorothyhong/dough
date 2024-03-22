@@ -5,6 +5,7 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import utc from "dayjs/plugin/utc";
 import Comments from "./comments";
 import Likes from "./likes";
+// import "../css/style.css";
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -119,9 +120,9 @@ export default function Post({ url, postId }) {
           });
         }
       })
-      .catch((error) => {
-        // Consider how to communicate this error to the user
-      });
+      // .catch((error) => {
+      //   // Consider how to communicate this error to the user
+      // });
   };
 
   const handleDoubleClick = () => {
@@ -176,11 +177,14 @@ export default function Post({ url, postId }) {
   // Render post image and post owner
   return (
     <div className="post">
-      <img
-        src={ownerImgUrl}
-        alt="profile_image"
-        // Optional: indicates the image is interactive
-      />
+      <div className="profile-img">
+        <img
+          src={ownerImgUrl}
+          alt="profile_image"
+          // Optional: indicates the image is interactive
+        />
+      </div>
+ 
       <p>{owner}</p>
       <a href={postShowUrl}>{createdAt}</a>
       <img

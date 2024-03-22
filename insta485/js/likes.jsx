@@ -1,5 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
+// import "../css/style.css";
 
 export default function Likes({ likes, onToggleLike }) {
   const buttonText = likes.lognameLikesThis ? "Unlike" : "Like";
