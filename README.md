@@ -1,6 +1,6 @@
-EECS 485 Project 3 Solution
+DOUGH: Family Budgeting App
 ===========================
-Client-side Dynamic Pages
+A comprehensive budgeting app designed for families to manage and track their finances efficiently, including income and expenses, allowances for children, and financial goal setting.
 
 By Dorothy Hong <jmhong@umich.edu>
 
